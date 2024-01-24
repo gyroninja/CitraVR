@@ -34,6 +34,7 @@ private:
     EGLSurface egl_surface{};
     EGLContext egl_context{};
     EGLDisplay egl_display{};
+    bool display_vsync{};
 
     enum class PresentingState {
         Initial,

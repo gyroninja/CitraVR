@@ -17,6 +17,8 @@
 #include "video_core/renderer_base.h"
 #include "video_core/video_core.h"
 
+#include "../vr/utils/LogUtils.h"
+
 static constexpr std::array<EGLint, 15> egl_attribs{EGL_SURFACE_TYPE,
                                                     EGL_WINDOW_BIT,
                                                     EGL_RENDERABLE_TYPE,
@@ -122,6 +124,7 @@ EmuWindow_Android_OpenGL::EmuWindow_Android_OpenGL(ANativeWindow* surface)
         LOG_CRITICAL(Frontend, "eglSwapInterval() failed");
         return;
     }
+    display_vsync = Settings::values.use_vsync_new.GetValue();
 
     OnFramebufferSizeChanged();
 }
@@ -198,6 +201,10 @@ void EmuWindow_Android_OpenGL::StopPresenting() {
     presenting_state = PresentingState::Stopped;
 }
 
+
+long long a = 0;
+long long b = 0;
+
 void EmuWindow_Android_OpenGL::TryPresenting() {
     if (presenting_state == PresentingState::Initial) [[unlikely]] {
         eglMakeCurrent(egl_display, egl_surface, egl_surface, egl_context);
@@ -207,7 +214,11 @@ void EmuWindow_Android_OpenGL::TryPresenting() {
     if (presenting_state != PresentingState::Running) [[unlikely]] {
         return;
     }
-    eglSwapInterval(egl_display, Settings::values.use_vsync_new ? 1 : 0);
+    bool new_vsync = Settings::values.use_vsync_new.GetValue();
+    if (display_vsync != new_vsync) [[unlikely]] {
+        eglSwapInterval(egl_display, new_vsync ? 1 : 0);
+        display_vsync = new_vsync;
+    }
     if (VideoCore::g_renderer) {
         VideoCore::g_renderer->TryPresent(0);
         eglSwapBuffers(egl_display, egl_surface);
